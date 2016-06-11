@@ -29,19 +29,19 @@ AccelStepper    _motorRight;
 // IR SENSOR PINS
 const int LED_LF = 4;  
 const int LED_DL = 5;  
-const int LED_DR = 6;
-const int LED_RF = 7;
+const int LED_DR = 6;  
+const int LED_RF = 7;  
 
-const int LEFT_DG = A0;   //A1  //For version 1
+const int LEFT_DG = A2;   //A1  //For version 1
 const int LEFT_FT = A1;   //A0  //For version 1
 const int RIGHT_DG = A3;
-const int RIGHT_FT = A2;
+const int RIGHT_FT = A0;
 boolean Running=false;
 
 
 int reading=0;
-int _right_Correction=150;//-60
-int _left_Correction=150;  //90
+int _right_Correction=555;//-60
+int _left_Correction=555;  //90
 
 float _leftSpeed = 474.0; //default _leftSpeed 500
 float _rightSpeed = 474.0; //default _rightSpeed 500
@@ -56,13 +56,13 @@ const int IRsensorsPairs[][2] = {
     LED_DR, RIGHT_DG  }
   ,
   { 
-    LED_DL, LEFT_DG  }
+	LED_DL, LEFT_DG  }
   ,
   //{                           //for version 1
   //  LED_DR, RIGHT_DG  }
   //,
   { 
-    LED_RF, RIGHT_FT  }
+        LED_RF, RIGHT_FT   }
 };
 
 
@@ -151,12 +151,16 @@ void MMkit::setMaxSpeeds (float leftMaxSpeed, float rightMaxSpeed) {
 
 boolean MMkit::running() {
 
-     if (_motorLeft.distanceToGo() > 0 || _motorRight.distanceToGo() > 0) {                            
+    /* if (_motorLeft.distanceToGo() > 0 || _motorRight.distanceToGo() > 0) {                            
      return Running;
      }
      else {
      return Running=false;
-     }
+     }*/
+	if (_motorLeft.isRunning()&& _motorRight.isRunning()) {                            
+     return Running;
+    }
+    else return Running=false;
 }
 
 long MMkit::cmToSteps(float cm)
@@ -179,8 +183,8 @@ void MMkit::rotate(float deg) {//positive rotates Right, negative rotates Left
    _motorLeft.setCurrentPosition(0);
    _motorRight.setCurrentPosition(0);  
   deg=deg/10;
-  _motorLeft.move(cmToSteps((deg/360.0)*3.14159265358979*_WHEEL_SPACING)); 
-  _motorRight.move(-cmToSteps((deg/360.0)*3.14159265358979*_WHEEL_SPACING));
+  _motorLeft.move(cmToSteps((deg/360.0)*3.14159265358979*(_WHEEL_SPACING+10))); 
+  _motorRight.move(-cmToSteps((deg/360.0)*3.14159265358979*(_WHEEL_SPACING+10)));
   Running=true;
 }
 
@@ -226,9 +230,11 @@ void MMkit::waitForStart(){
    readIRSensors();
    delay(100);
    
-  while(IRsensorsValues[0]<150||(6000 / (IRsensorsValues[1]- 17) - 2 )<10) {
+  while(IRsensorsValues[0]<450||(6000 / (IRsensorsValues[1]- 17) - 4 )<6) {
     readIRSensors();
     digitalWrite(13,HIGH);
+	int Diference_Between_Right_Left=abs(IRsensorsValues[1]-IRsensorsValues[2]); // get the difference between right and left sensor
+    analogWrite(13,Diference_Between_Right_Left);
     Serial.println("Waiting for hand in front left and right");                         
   } 
   delay(500);
@@ -236,7 +242,7 @@ void MMkit::waitForStart(){
 }
 
 void MMkit::run() {
-
+/*
      if(_motorLeft.distanceToGo() >0){
         while ((_motorLeft.distanceToGo() > 0) || (_motorRight.distanceToGo() < 0)) {                           
                _motorLeft.run();
@@ -250,7 +256,11 @@ void MMkit::run() {
        }
      
      }
-
+*/
+        while ((_motorLeft.isRunning()) && (_motorRight.isRunning())) {                           
+               _motorLeft.run();
+               _motorRight.run(); 
+        }
 }
 void MMkit::stop() {
   _motorLeft.move(0);
@@ -288,7 +298,7 @@ void MMkit::runSpeed() {
       case B00000010:  //Right wall
 	     //Serial.println("Right Wall");
          _motorRight.setSpeed(+(_rightSpeed-(_right_Correction-IRsensorsValues[1])));
-         _motorLeft.setSpeed(_leftSpeed+(_right_Correction-IRsensorsValues[1]));
+         _motorLeft.setSpeed(_leftSpeed+(_right_Correction-IRsensorsValues[1])/3);
       break;
   default:
     _motorLeft.setSpeed(_leftSpeed);
@@ -296,7 +306,7 @@ void MMkit::runSpeed() {
     break;
   }
   //Serial.println(IRsensorsValues[3]); 
-  if(IRsensorsValues[0]>850&&IRsensorsValues[3]>850){
+  if(IRsensorsValues[0]>750&&IRsensorsValues[3]>750){
     if(_motorRight.distanceToGo()>1000&&_motorLeft.distanceToGo()>1000){
          if(current_cell.theta=0x02)current_cell.y++;
          if(current_cell.theta=0x01)current_cell.x--;
@@ -307,20 +317,7 @@ void MMkit::runSpeed() {
     _motorLeft.setCurrentPosition(0);
     _motorRight.setCurrentPosition(0);                                              
     _motorLeft.setSpeed(+_leftSpeed);
-    _motorRight.setSpeed(_rightSpeed);
-    //_motorLeft.move(cmToSteps(-(6000 / (IRsensorsValues[3]- 17)/14)));
-    //_motorRight.move(cmToSteps(-(6000 / (IRsensorsValues[0]- 17)/14)));
-    goForward(-1.5);
-    while (_motorLeft.distanceToGo() < 0 || _motorRight.distanceToGo() < 0){
-      //Serial.println(_motorLeft.distanceToGo());  //for debug purposes
-      //Serial.println(_motorRight.distanceToGo()); //for debug purposes
-     // analogWrite(13,175);
-      _motorLeft.runSpeed();
-      _motorRight.runSpeed();
-    } 
-    readIRSensors();
-    _motorLeft.setCurrentPosition(0);
-    _motorRight.setCurrentPosition(0);                                              
+    _motorRight.setSpeed(_rightSpeed);                                            
  
   }
   _motorLeft.runSpeed();
@@ -348,7 +345,7 @@ boolean MMkit::isWallRight(void)
 
 boolean MMkit::isWallFront(void)
 {
-  if ((IRsensorsValues[0] < IR_FRONT_L_THRESHOLD) && (IRsensorsValues[3] < IR_FRONT_R_THRESHOLD)) return 0;
+  if ((IRsensorsValues[0] < IR_FRONT_R_THRESHOLD) && (IRsensorsValues[3] < IR_FRONT_L_THRESHOLD)) return 0;
   else return 1;
 
 }

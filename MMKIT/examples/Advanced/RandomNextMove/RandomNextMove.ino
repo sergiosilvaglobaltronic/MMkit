@@ -1,3 +1,4 @@
+/**@file*/
 /* 
  This example was created by Sérgio Silva
  on the 20th April 2015
@@ -28,10 +29,14 @@ enum statesRobotMovements {
 unsigned char stateMovement = STATE_MOV_FRONT;
 unsigned char toMove = STATE_MOV_FRONT;
 boolean turn=false;
+unsigned int velocidade=10;
+double aceleration=1;  //usada para chegar a velocidade
+unsigned long previousMicros=0;
+
 void setup(){
   Grigoras.setupMMkit();                // Starts the MMkit
   Grigoras.goForward(18.0);              //distance to go forward in cm (18.0) means 18.0cm
-  Grigoras.setForwardMotionSpeed(500);  //sets forward speed
+  Grigoras.setForwardMotionSpeed(velocidade);  //sets forward speed
   Grigoras.waitForStart();            // waits for hand passing front right sensors
 }
 
@@ -39,6 +44,7 @@ void loop(){
 
   if(Grigoras.running()==true) {
     if(turn==false){
+	  acceleration();
       Grigoras.runSpeed();                //moves at the desired speed
     }
     else{
@@ -48,6 +54,7 @@ void loop(){
   else{
     digitalWrite(13,HIGH);
     turn=false;
+	Grigoras.readIRSensors();
     stateMovement = nextMove(stateMovement);
     robotMove();
 

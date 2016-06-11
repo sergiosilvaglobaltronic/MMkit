@@ -1,3 +1,4 @@
+/**@file*/
 /* 
  This example was created by Sérgio Silva
  on the 20th April 2015
@@ -34,6 +35,18 @@ void setup(){
 
 void loop(){
   Grigoras.testIRSensors();
+     Grigoras.current_cell.wall = B00000000;    // clears cell values
+  if ( Grigoras.isWallLeft() == 1) {         // wall 0000 0 LRF  checks if there is a left wall
+     Grigoras.current_cell.wall = Grigoras.current_cell.wall | B00000100;
+  }
+  if ( Grigoras.isWallFront() == 1) {        // wall 0000 0 LRF  checks if there is a front wall
+     Grigoras.current_cell.wall = Grigoras.current_cell.wall | B00000001;
+  }
+  if ( Grigoras.isWallRight() == 1) {        // wall 0000 0 LRF  checks if there is a right wall
+     Grigoras.current_cell.wall = Grigoras.current_cell.wall | B00000010;
+  }
+  Serial.println(Grigoras.current_cell.wall,BIN);
+  delay(1000);
 }
 
 
